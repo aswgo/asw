@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/aswgo/asw/template"
@@ -94,4 +95,13 @@ func FileGomodRead(target string) (*modfile.Module, error) {
 	}
 
 	return mf.Module, nil
+}
+
+func PathJoinCWD(file string) (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	return path.Join(cwd, file), nil
 }

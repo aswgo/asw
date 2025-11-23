@@ -1,36 +1,76 @@
 package service
 
 import (
+	"cmp"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/aswgo/asw/pkg"
 	"github.com/fsnotify/fsnotify"
-	"github.com/gowok/fp/slices"
+	"github.com/gowok/gowok"
 	"github.com/spf13/cobra"
 )
 
-func cmdGoRun(args []string) *exec.Cmd {
-	p := pkg.NewCommandInDir(args[0], "go", "run", ".", "--config", "config.toml")
+func cmdGoRunWatch(args []string) *exec.Cmd {
+	p := pkg.NewCommandInDir(args[0], "go", "run", ".")
 	return p
 }
 
 func Run(cmd *cobra.Command, args []string) error {
-	slog := slog.With("context", "Run")
+	flagWatch, err := cmd.Flags().GetBool("watch")
+	if err != nil {
+		return err
+	}
 
+	flagConfig, err := cmd.Flags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	pathConfig := path.Join(cwd, "asw.toml")
+
+	if flagWatch {
+		err = runWatch(cmp.Or(flagConfig, pathConfig), args...)
+		if err != nil {
+			return err
+		}
+	} else {
+		run(cmp.Or(flagConfig, pathConfig))
+	}
+
+	return nil
+}
+
+func run(config string) {
+	gowok.Run(config)
+}
+
+func runWatch(config string, args ...string) error {
 	watchedExt := []string{".go", ".toml"}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	args = append(args, cwd)
 
 	err = watcher.Add(args[0])
 	if err != nil {
@@ -47,7 +87,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 
-	p := cmdGoRun(args)
+	p := cmdGoRunWatch(args)
 
 	go func() {
 		err := p.Start()
@@ -60,8 +100,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	}()
 
 	done := make(chan os.Signal, 1)
-	signal.Notify(done, syscall.SIGTERM)
-	signal.Notify(done, syscall.SIGINT)
+	signal.Notify(done, syscall.SIGTERM, syscall.SIGINT)
 	for {
 		select {
 		case event := <-watcher.Events:
@@ -81,7 +120,7 @@ func Run(cmd *cobra.Command, args []string) error {
 				return err
 			}
 
-			p = cmdGoRun(args)
+			p = cmdGoRunWatch(args)
 			go func() {
 				err := p.Start()
 				if err != nil {

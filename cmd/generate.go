@@ -1,11 +1,11 @@
-package main
+package cmd
 
 import (
 	"github.com/aswgo/asw/service"
 	"github.com/spf13/cobra"
 )
 
-var genCmd = &cobra.Command{
+var Gen = &cobra.Command{
 	Use:     "generate",
 	Short:   "Generate any kind of file with given name",
 	Aliases: []string{"g", "gen"},
@@ -39,11 +39,11 @@ var genRepositoryCmd = &cobra.Command{
 }
 
 func configureGenCmd() {
-	genCmd.Flags().StringP("project", "p", "", "project path")
-	genControllerCmd.Flags().AddFlagSet(genCmd.Flags())
-	genServiceCmd.Flags().AddFlagSet(genCmd.Flags())
-	genRepositoryCmd.Flags().AddFlagSet(genCmd.Flags())
-	genCmd.AddCommand(
+	Gen.Flags().StringP("project", "p", "", "project path")
+	genControllerCmd.Flags().AddFlagSet(Gen.Flags())
+	genServiceCmd.Flags().AddFlagSet(Gen.Flags())
+	genRepositoryCmd.Flags().AddFlagSet(Gen.Flags())
+	Gen.AddCommand(
 		genControllerCmd,
 		genServiceCmd,
 		genRepositoryCmd,

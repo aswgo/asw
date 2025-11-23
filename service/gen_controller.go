@@ -47,6 +47,15 @@ func GenController(cmd *cobra.Command, args []string) error {
 
 		err = pkg.FileWriteAfterMarker(
 			path.Join(projectPath, "main.go"),
+			"import (",
+			`"github.com/gowok/gowok"`,
+		)
+		if err != nil {
+			return err
+		}
+
+		err = pkg.FileWriteAfterMarker(
+			path.Join(projectPath, "main.go"),
 			"func main()",
 			"gowok.Configures(controller.Configure)",
 		)
